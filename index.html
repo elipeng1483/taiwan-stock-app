@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#E24B4A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="台股智析">
+<link rel="manifest" href="manifest.json">
+<title>台股智能分析</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.2.0/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E24B4A;--red-bg:#FCEBEB;--red-dark:#A32D2D;
+  --green:#1D9E75;--green-bg:#EAF3DE;--green-dark:#3B6D11;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-dark:#633806;
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-dark:#0C447C;
+  --bg:#FFFFFF;--bg2:#F5F5F3;--bg3:#EEECE6;
+  --tx:#1A1A18;--tx2:#6B6B67;--tx3:#9B9B97;
+  --bd:rgba(0,0,0,0.10);--r:10px;
+  --font:-apple-system,'SF Pro TC','PingFang TC','Noto Sans TC',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg2);color:var(--tx);font-size:14px;min-height:100vh;-webkit-text-size-adjust:100%}
+.app{max-width:480px;margin:0 auto;background:var(--bg2);min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{background:var(--bg);padding:env(safe-area-inset-top,0) 16px 0;border-bottom:.5px solid var(--bd);position:sticky;top:0;z-index:100}
+.topbar-inner{display:flex;align-items:center;gap:10px;padding:10px 0 9px}
+.app-ic{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;flex-shrink:0}
+.topbar h1{font-size:16px;font-weight:600;flex:1}
+.src-tag{font-size:10px;background:var(--amber-bg);color:var(--amber-dark);padding:2px 7px;border-radius:4px;font-weight:500}
+.live-pill{background:var(--red-bg);color:var(--red-dark);font-size:11px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px}
+.live-dot{width:5px;height:5px;background:var(--red);border-radius:50%;animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg);border-bottom:.5px solid var(--bd)}
+.stat{text-align:center;padding:8px 4px 9px;cursor:pointer}
+.stat:active{background:var(--bg2)}
+.stat-n{font-size:17px;font-weight:700}
+.stat-l{font-size:9px;color:var(--tx2);margin-top:1px;letter-spacing:-.2px}
+.stat-sub{font-size:10px;color:var(--tx3)}
+
+/* ── Ticker ── */
+.ticker-wrap{background:var(--bg);border-bottom:.5px solid var(--bd);overflow:hidden;height:28px;position:relative}
+.ticker{display:flex;gap:20px;animation:scroll 30s linear infinite;padding:6px 0;white-space:nowrap;width:max-content}
+.ticker:hover{animation-play-state:paused}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tick-item{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2)}
+.tick-name{color:var(--tx);font-weight:500}
+.tick-up{color:var(--red)}
+.tick-dn{color:var(--green)}
+
+/* ── Tabs ── */
+.tabs{display:flex;background:var(--bg);border-bottom:.5px solid var(--bd);position:sticky;top:53px;z-index:99}
+.tab{flex:1;padding:9px 4px 8px;font-size:11px;color:var(--tx2);text-align:center;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.tab.active{color:var(--red);border-bottom-color:var(--red);font-weight:600}
+.tab i{display:block;font-size:19px;margin-bottom:1px}
+
+/* ── Content ── */
+.content{padding:12px;display:none}
+.content.active{display:block}
+
+/* ── Chips ── */
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.c{padding:4px 11px;font-size:12px;border:.5px solid var(--bd);border-radius:20px;background:var(--bg);color:var(--tx2);cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.c.on{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ── Section header ── */
+.sh{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.sh-r{display:flex;align-items:center;gap:6px}
+.sh-cnt{font-size:11px;background:var(--bg2);color:var(--tx2);padding:2px 8px;border-radius:20px;font-weight:400}
+.refresh-ic{background:none;border:none;color:var(--tx2);cursor:pointer;font-size:15px;padding:2px 4px;-webkit-tap-highlight-color:transparent}
+.refresh-ic.spinning i{animation:spin .7s linear infinite}
+
+/* ── Stock card ── */
+.sc{background:var(--bg);border-radius:var(--r);padding:12px;margin-bottom:8px;border:.5px solid var(--bd);transition:transform .1s}
+.sc:active{transform:scale(.99)}
+.sc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.sc-left{display:flex;align-items:flex-start;gap:8px}
+.sc-name{font-size:15px;font-weight:600}
+.sc-code{font-size:11px;color:var(--tx3);margin-top:1px}
+.sc-price{text-align:right}
+.sc-p{font-size:18px;font-weight:700}
+.sc-chg{font-size:12px;margin-top:1px}
+.up{color:var(--red)}
+.dn{color:var(--green)}
+.flat{color:var(--tx2)}
+.sc-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.badge{font-size:11px;padding:2px 7px;border-radius:5px;font-weight:500}
+.b-lmt{background:var(--red-bg);color:var(--red-dark)}
+.b-hi{background:var(--green-bg);color:var(--green-dark)}
+.b-tv{background:var(--amber-bg);color:var(--amber-dark)}
+.b-streak{background:#FEE2E2;color:#7F1D1D}
+.b-src{background:var(--bg2);color:var(--tx2)}
+
+/* ── OHLC row ── */
+.ohlc-row{display:flex;gap:10px;margin-bottom:8px}
+.ohlc-item{flex:1;text-align:center}
+.ohlc-l{font-size:9px;color:var(--tx3);margin-bottom:2px}
+.ohlc-v{font-size:12px;font-weight:500}
+
+/* ── TV bar ── */
+.tv-row{display:flex;align-items:center;gap:6px}
+.tv-lbl{font-size:10px;color:var(--tx2);width:42px;flex-shrink:0}
+.tv-bar{flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden}
+.tv-fill{height:100%;background:var(--red);border-radius:3px;transition:width .6s ease}
+.tv-val{font-size:12px;font-weight:600;color:var(--red-dark);min-width:52px;text-align:right}
+
+/* ── Rank ── */
+.rank{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.r1{background:#FAC775;color:#412402}
+.r2{background:#D3D1C7;color:#2C2C2A}
+.r3{background:#F0997B;color:#4A1B0C}
+.rn{background:var(--bg2);color:var(--tx2);font-size:10px}
+
+/* ── News ── */
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.fb{padding:4px 9px;font-size:11px;border:.5px solid var(--bd);border-radius:5px;background:var(--bg);color:var(--tx2);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.fb.on-src{background:var(--blue);color:#fff;border-color:var(--blue)}
+.fb.on-kw{background:var(--amber);color:#fff;border-color:var(--amber)}
+.nc{background:var(--bg);border-radius:var(--r);padding:12px;margin-bottom:8px;border:.5px solid var(--bd);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.nc:active{background:var(--bg2)}
+.nc-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
+.nc-src{font-size:11px;background:var(--bg2);color:var(--tx2);padding:2px 7px;border-radius:5px}
+.nc-time{font-size:11px;color:var(--tx3)}
+.nc-kw{font-size:10px;background:var(--red-bg);color:var(--red-dark);padding:2px 7px;border-radius:5px}
+.nc-title{font-size:13px;line-height:1.55;color:var(--tx)}
+.nc:hover .nc-title,.nc:active .nc-title{color:var(--red)}
+.nc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.nc-tag{font-size:10px;padding:2px 6px;border-radius:4px}
+
+/* ── Alert card ── */
+.notify-bar{background:var(--amber-bg);border:.5px solid #FAC775;border-radius:var(--r);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--amber-dark);display:none;align-items:center;gap:6px}
+.al{background:var(--bg);border-radius:var(--r);padding:11px 12px;margin-bottom:7px;border-left:3px solid var(--red);border-top:.5px solid var(--bd);border-right:.5px solid var(--bd);border-bottom:.5px solid var(--bd)}
+.al-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px}
+.al-ic{font-size:16px;flex-shrink:0}
+.al-title{font-size:13px;line-height:1.5;flex:1}
+.al-time{font-size:10px;color:var(--tx3);flex-shrink:0}
+.al-kws{display:flex;gap:4px;flex-wrap:wrap}
+
+/* ── AI Box ── */
+.ai-box{background:var(--bg);border-radius:var(--r);padding:14px;margin-top:10px;border:.5px solid var(--bd)}
+.ai-hd{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ai-body{font-size:13px;color:var(--tx2);line-height:1.65;white-space:pre-wrap;min-height:40px}
+.ai-dots{display:inline-flex;gap:3px;align-items:center;vertical-align:middle}
+.ai-dots span{width:5px;height:5px;background:var(--tx3);border-radius:50%;animation:jump 1.2s infinite}
+.ai-dots span:nth-child(2){animation-delay:.2s}
+.ai-dots span:nth-child(3){animation-delay:.4s}
+@keyframes jump{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.ai-btn{width:100%;margin-top:10px;padding:10px;font-size:13px;border:.5px solid var(--bd);border-radius:8px;background:var(--bg2);color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font);-webkit-tap-highlight-color:transparent}
+.ai-btn:active{opacity:.7}
+
+/* ── Loading / empty ── */
+.loading{text-align:center;padding:32px 16px;color:var(--tx2);font-size:13px}
+.spin{display:inline-block;width:22px;height:22px;border:2px solid var(--bd);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:28px 16px;color:var(--tx3);font-size:13px}
+.err-box{background:var(--red-bg);border-radius:8px;padding:12px;font-size:12px;color:var(--red-dark);margin-bottom:10px;line-height:1.5}
+
+/* ── Source label ── */
+.data-src{font-size:10px;color:var(--tx3);text-align:center;padding:6px 0 2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="app-ic">股</div>
+    <h1>台股智能分析</h1>
+    <span class="src-tag">三竹即時</span>
+    <div class="live-pill"><div class="live-dot"></div><span id="last-update">--:--</span></div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat" onclick="switchTab('monthly',document.querySelectorAll('.tab')[0])">
+    <div class="stat-n up" id="s-index">--</div>
+    <div class="stat-sub up" id="s-index-chg">--</div>
+    <div class="stat-l">加權指數</div>
+  </div>
+  <div class="stat" onclick="switchTab('limit',document.querySelectorAll('.tab')[1])">
+    <div class="stat-n up" id="s-limit">--</div>
+    <div class="stat-l">漲停板</div>
+  </div>
+  <div class="stat" onclick="switchTab('monthly',document.querySelectorAll('.tab')[0])">
+    <div class="stat-n up" id="s-monthly">--</div>
+    <div class="stat-l">月線新高</div>
+  </div>
+  <div class="stat" onclick="switchTab('news',document.querySelectorAll('.tab')[2])">
+    <div class="stat-n" style="color:var(--amber)" id="s-news">--</div>
+    <div class="stat-l">推播新聞</div>
+  </div>
+</div>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker">
+    <span class="tick-item">載入中...</span>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('monthly',this)">
+    <i class="ti ti-trending-up"></i>月線新高
+  </button>
+  <button class="tab" onclick="switchTab('limit',this)">
+    <i class="ti ti-flame"></i>漲停排行
+  </button>
+  <button class="tab" onclick="switchTab('news',this)">
+    <i class="ti ti-news"></i>財經新聞
+  </button>
+  <button class="tab" onclick="switchTab('alerts',this)">
+    <i class="ti ti-bell"></i>推播中心
+  </button>
+</div>
+
+<!-- ① 月線新高 -->
+<div id="tab-monthly" class="content active">
+  <div class="sh">月線創新高
+    <div class="sh-r">
+      <span class="sh-cnt" id="monthly-cnt">--</span>
+      <button class="refresh-ic" id="refresh-monthly" onclick="loadMonthly(true)"><i class="ti ti-refresh"></i></button>
+    </div>
+  </div>
+  <div id="monthly-list"><div class="loading"><div class="spin"></div><br>從三竹載入即時資料中...</div></div>
+  <div class="data-src">資料來源：三竹股市 API + TWSE</div>
+  <div class="ai-box">
+    <div class="ai-hd">✦ AI 月線策略分析</div>
+    <div class="ai-body" id="ai-monthly">點擊下方按鈕讓 AI 分析月線創新高 + 上成值策略。</div>
+    <button class="ai-btn" onclick="aiAnalyze('monthly')"><i class="ti ti-robot"></i> AI 分析月線策略 ↗</button>
+  </div>
+</div>
+
+<!-- ② 漲停排行 -->
+<div id="tab-limit" class="content">
+  <div class="chips" id="limit-chips">
+    <div class="c on" onclick="sortLimit(this,'tv')">上成值排行</div>
+    <div class="c" onclick="sortLimit(this,'streak')">連板數</div>
+    <div class="c" onclick="sortLimit(this,'monthly')">月線新高優先</div>
+  </div>
+  <div class="sh">今日漲停板
+    <div class="sh-r">
+      <span class="sh-cnt" id="limit-cnt">--</span>
+      <button class="refresh-ic" id="refresh-limit" onclick="loadLimit(true)"><i class="ti ti-refresh"></i></button>
+    </div>
+  </div>
+  <div id="limit-list"><div class="loading"><div class="spin"></div><br>從三竹載入漲停資料中...</div></div>
+  <div class="data-src">資料來源：三竹股市即時 API（mis.twse.com.tw）</div>
+  <div class="ai-box">
+    <div class="ai-hd">✦ AI 強勢股分析</div>
+    <div class="ai-body" id="ai-limit">點擊下方按鈕分析今日漲停強度與後市展望。</div>
+    <button class="ai-btn" onclick="aiAnalyze('limit')"><i class="ti ti-robot"></i> AI 分析漲停策略 ↗</button>
+  </div>
+</div>
+
+<!-- ③ 財經新聞 -->
+<div id="tab-news" class="content">
+  <div class="notify-bar" id="news-banner">
+    🔔 偵測到 <span id="kw-cnt">0</span> 則關鍵字新聞，推播已啟動
+  </div>
+  <div class="filter-row" id="src-filters">
+    <button class="fb on-src" onclick="toggleSrc(this,'全部')">全部</button>
+    <button class="fb" onclick="toggleSrc(this,'時報')">時報</button>
+    <button class="fb" onclick="toggleSrc(this,'自由')">自由時報</button>
+    <button class="fb" onclick="toggleSrc(this,'經濟')">經濟日報</button>
+    <button class="fb" onclick="toggleSrc(this,'工商')">工商時報</button>
+    <button class="fb" onclick="toggleSrc(this,'非凡')">非凡新聞</button>
+  </div>
+  <div class="filter-row" id="kw-filters">
+    <button class="fb on-kw" onclick="toggleKw(this,'全部')">全部</button>
+    <button class="fb" onclick="toggleKw(this,'執行長')">執行長</button>
+    <button class="fb" onclick="toggleKw(this,'董事長')">董事長</button>
+    <button class="fb" onclick="toggleKw(this,'總經理')">總經理</button>
+    <button class="fb" onclick="toggleKw(this,'副總經理')">副總經理</button>
+    <button class="fb" onclick="toggleKw(this,'財務長')">財務長</button>
+    <button class="fb" onclick="toggleKw(this,'發言人')">發言人</button>
+    <button class="fb" onclick="toggleKw(this,'政府')">政府</button>
+    <button class="fb" onclick="toggleKw(this,'創天價')">創天價</button>
+  </div>
+  <div id="news-list"><div class="loading"><div class="spin"></div><br>載入財經新聞中...</div></div>
+  <div class="ai-box">
+    <div class="ai-hd">✦ AI 新聞市場影響分析</div>
+    <div class="ai-body" id="ai-news">點擊下方按鈕讓 AI 分析今日財經新聞的市場影響。</div>
+    <button class="ai-btn" onclick="aiAnalyze('news')"><i class="ti ti-robot"></i> AI 分析今日財經重點 ↗</button>
+  </div>
+</div>
+
+<!-- ④ 推播中心 -->
+<div id="tab-alerts" class="content">
+  <div class="sh">今日關鍵字推播
+    <span class="sh-cnt" id="alert-cnt">0 則</span>
+  </div>
+  <div id="alert-list"><div class="empty">尚無推播通知</div></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// 設定
+// ═══════════════════════════════════════════════════════════
+
+// 三竹即時 API（直接從前端呼叫，免後端）
+const MISTOCK = "https://mis.twse.com.tw/stock/api/getStockInfo.do";
+
+// 若你有自己的後端（Render），填在這裡；沒有就留空字串
+// 後端只用於：月線歷史資料（TWSE 需要伺服器端繞過 CORS）
+const API = "";  // 例如 "https://taiwan-stock-api.onrender.com"
+
+// TWSE CORS proxy（公開免費服務，讓前端能直接打 TWSE）
+const TWSE_PROXY = "https://corsproxy.io/?";
+const TWSE_DAILY = "https://www.twse.com.tw/rwd/zh/exchangeReport/STOCK_DAY_ALL?response=json";
+
+// 關鍵字
+const KEYWORDS = ["執行長","董事長","總經理","副總經理","財務長","發言人","政府","創天價"];
+
+// RSS 來源（透過 RSS2JSON 免費服務轉為 JSON，繞過 CORS）
+const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=";
+const NEWS_SOURCES = {
+  "時報新聞": "https://www.chinatimes.com/rss/finance.xml",
+  "自由時報": "https://ec.ltn.com.tw/rss/news.xml",
+  "經濟日報": "https://money.udn.com/rssfeed/news/1001/5591?ch=money",
+  "工商時報": "https://ctee.com.tw/feed",
+  "非凡新聞": "https://news.ustv.com.tw/rss.xml",
+};
+
+// 觀察股清單（三竹批次查詢用，台灣前 50 大市值）
+const WATCH_CODES = [
+  "2330","2317","2454","2308","2382","2303","2412","2002","1301","1303",
+  "2881","2882","2886","2891","2884","2885","5880","2892","2883","2880",
+  "3711","2379","3034","2395","2327","6505","1216","2912","2207","2105",
+  "3008","2474","2357","4938","3045","4904","2376","2408","3661","6278",
+  "2301","2337","6531","3231","2360","2385","3533","4958","6770","2344"
+];
+
+// ═══════════════════════════════════════════════════════════
+// 狀態
+// ═══════════════════════════════════════════════════════════
+let allMonthly=[], allLimit=[], allNews=[], allAlerts=[];
+let activeSrc="全部", activeKw="全部", limitSort="tv";
+let tickerStocks=[];
+
+// ═══════════════════════════════════════════════════════════
+// 工具
+// ═══════════════════════════════════════════════════════════
+const sf = (v,d=0)=>{ try{return parseFloat(String(v).replace(/,/g,"").replace("+","").trim())||d}catch{return d} };
+const si = (v,d=0)=>{ try{return parseInt(String(v).replace(/,/g,"").trim())||d}catch{return d} };
+const fmtTV = v => v>=100?v.toFixed(0)+"億":v>=1?v.toFixed(1)+"億":(v*100).toFixed(0)+"百萬";
+const fmtP  = v => v>0?`<span class="up">+${v.toFixed(2)}%</span>`:v<0?`<span class="dn">${v.toFixed(2)}%</span>`:`<span class="flat">0.00%</span>`;
+const fmtC  = (v,p) => p>0?`<span class="up">${v}</span>`:p<0?`<span class="dn">${v}</span>`:`<span class="flat">${v}</span>`;
+const now8  = ()=>{ const d=new Date(); return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; };
+
+function toggleChipGroup(el, sel){
+  document.querySelectorAll(sel).forEach(c=>c.classList.remove("on"));
+  el.classList.add("on");
+}
+
+function switchTab(id,btn){
+  document.querySelectorAll(".content").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(el=>el.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("active");
+  if(btn) btn.classList.add("active");
+}
+
+function setRefreshSpin(id, on){
+  const btn=document.getElementById("refresh-"+id);
+  if(!btn) return;
+  if(on) btn.classList.add("spinning"); else btn.classList.remove("spinning");
+}
+
+// ═══════════════════════════════════════════════════════════
+// 三竹 API — 批次查詢即時行情
+// mis.twse.com.tw/stock/api/getStockInfo.do?json=1&delay=0&ex_ch=tse_2330.tw|...
+// ═══════════════════════════════════════════════════════════
+async function misFetch(codes){
+  // 組成 ex_ch 參數
+  const exCh = codes.map(c=>`tse_${c}.tw`).join("|");
+  const url = `${MISTOCK}?json=1&delay=0&ex_ch=${encodeURIComponent(exCh)}`;
+  const r = await fetch(url, {
+    headers:{
+      "Referer":"https://mis.twse.com.tw/",
+      "Accept":"application/json"
+    }
+  });
+  const data = await r.json();
+  return (data.msgArray||[]).map(item=>{
+    const z  = sf(item.z, sf(item.y));   // 成交價
+    const y  = sf(item.y);               // 昨收
+    const v  = sf(item.v);               // 成交張數
+    const tv = sf(item.tv);              // 上成值（三竹直接給，單位元）
+    const chgPct = y?parseFloat(((z-y)/y*100).toFixed(2)):0;
+    const tvBillion = tv>0 ? parseFloat((tv/1e8).toFixed(2)) : parseFloat((z*v*1000/1e8).toFixed(2));
+    return {
+      code:  item.c||"",
+      name:  item.n||"",
+      price: z,
+      open:  sf(item.o),
+      high:  sf(item.h),
+      low:   sf(item.l),
+      prev:  y,
+      change: parseFloat((z-y).toFixed(2)),
+      change_pct: chgPct,
+      volume: si(v),
+      turnover_value: tvBillion,
+      is_limit_up:  chgPct >= 9.5,
+      is_limit_dn:  chgPct <= -9.5,
+      time:  item.t||"",
+      source:"三竹即時"
+    };
+  });
+}
+
+// 分批查詢（每批 50 檔，三竹限制）
+async function misFetchBatch(codes, batchSize=50){
+  const results=[];
+  for(let i=0;i<codes.length;i+=batchSize){
+    const batch=codes.slice(i,i+batchSize);
+    try{
+      const stocks=await misFetch(batch);
+      results.push(...stocks);
+    }catch(e){ console.warn("三竹批次失敗",e); }
+    if(i+batchSize<codes.length) await new Promise(r=>setTimeout(r,200));
+  }
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 大盤指數（三竹）
+// ═══════════════════════════════════════════════════════════
+async function loadIndex(){
+  try{
+    const url=`${MISTOCK}?json=1&delay=0&ex_ch=${encodeURIComponent("tse_t00.tw")}`;
+    const r=await fetch(url,{headers:{"Referer":"https://mis.twse.com.tw/"}});
+    const data=await r.json();
+    const item=(data.msgArray||[])[0];
+    if(!item) return;
+    const z=sf(item.z,sf(item.y));
+    const y=sf(item.y);
+    const chg=parseFloat((z-y).toFixed(2));
+    const pct=y?parseFloat(((z-y)/y*100).toFixed(2)):0;
+
+    document.getElementById("s-index").textContent=z?z.toLocaleString("zh-TW",{maximumFractionDigits:2}):"--";
+    const chgEl=document.getElementById("s-index-chg");
+    chgEl.textContent=(chg>=0?"+":"")+chg+" ("+pct+"%)" ;
+    chgEl.className="stat-sub "+(chg>0?"up":chg<0?"dn":"flat");
+    document.getElementById("last-update").textContent=now8();
+  }catch(e){ console.warn("指數失敗",e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Ticker（跑馬燈）
+// ═══════════════════════════════════════════════════════════
+function renderTicker(stocks){
+  if(!stocks||!stocks.length) return;
+  tickerStocks=stocks;
+  const items=stocks.slice(0,20).map(s=>{
+    const cls=s.change_pct>0?"tick-up":s.change_pct<0?"tick-dn":"";
+    const arrow=s.change_pct>0?"▲":s.change_pct<0?"▼":"－";
+    return `<span class="tick-item"><span class="tick-name">${s.name}</span><span class="${cls}">${arrow}${Math.abs(s.change_pct).toFixed(2)}%</span></span>`;
+  }).join("");
+  // 複製一份讓跑馬燈無縫循環
+  document.getElementById("ticker").innerHTML=items+items;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 月線創新高（TWSE 月K + 三竹即時價）
+// ═══════════════════════════════════════════════════════════
+async function checkMonthlyHigh(code){
+  // 用 API 後端；若無後端則用 CORS proxy 直打 TWSE
+  const base = API
+    ? `${API}/api/stocks/monthly-high/${code}`
+    : `${TWSE_PROXY}${encodeURIComponent(`https://www.twse.com.tw/rwd/zh/exchangeReport/STOCK_DAY?response=json&stockNo=${code}`)}`;
+  try{
+    const r=await fetch(base);
+    const data=await r.json();
+
+    if(API){
+      // 後端直接回傳結果
+      return data;
+    } else {
+      // 直接解析 TWSE 回應
+      const rows=data.data||[];
+      const closes=rows.map(row=>sf(row[6])).filter(v=>v>0);
+      if(closes.length<5) return {is_monthly_high:false};
+      const current=closes[closes.length-1];
+      const prevMax=Math.max(...closes.slice(0,-1));
+      return {
+        is_monthly_high: current>=prevMax*0.995,
+        breakout_pct: parseFloat(((current/prevMax-1)*100).toFixed(2)),
+        monthly_high: prevMax
+      };
+    }
+  }catch{ return {is_monthly_high:false}; }
+}
+
+async function loadMonthly(manual=false){
+  if(manual) setRefreshSpin("monthly",true);
+  document.getElementById("monthly-list").innerHTML='<div class="loading"><div class="spin"></div><br>三竹即時資料載入中...</div>';
+
+  try{
+    // 1. 三竹批次查觀察清單
+    const stocks = await misFetchBatch(WATCH_CODES);
+    stocks.sort((a,b)=>b.turnover_value-a.turnover_value);
+
+    // 2. 更新 Ticker
+    renderTicker(stocks);
+
+    // 3. 並發查月線（最多取前 30 名）
+    const top = stocks.slice(0,30);
+    const checks = await Promise.allSettled(
+      top.map(s=>checkMonthlyHigh(s.code).then(mh=>({...s,...mh})))
+    );
+
+    allMonthly = checks
+      .filter(r=>r.status==="fulfilled"&&r.value.is_monthly_high)
+      .map(r=>r.value)
+      .sort((a,b)=>b.turnover_value-a.turnover_value);
+
+    document.getElementById("s-monthly").textContent=allMonthly.length;
+    renderMonthly();
+  }catch(e){
+    document.getElementById("monthly-list").innerHTML=
+      `<div class="err-box">⚠ 三竹 API 無法連線（可能需開啟 VPN 或在台灣網路環境下使用）<br><small>${e.message}</small></div>`;
+    loadMonthlyDemo();
+  }finally{ if(manual) setRefreshSpin("monthly",false); }
+}
+
+function renderMonthly(){
+  const maxTV=Math.max(...allMonthly.map(s=>s.turnover_value),1);
+  const html=allMonthly.map((s,i)=>{
+    const rank=i+1;
+    const rc=rank<=3?`r${rank}`:"rn";
+    return `
+    <div class="sc">
+      <div class="sc-top">
+        <div class="sc-left">
+          <span class="rank ${rc}">${rank}</span>
+          <div><div class="sc-name">${s.name}</div><div class="sc-code">${s.code}</div></div>
+        </div>
+        <div class="sc-price">
+          <div class="sc-p ${s.change_pct>0?'up':s.change_pct<0?'dn':'flat'}">${s.price.toLocaleString()}</div>
+          <div class="sc-chg">${fmtP(s.change_pct)}</div>
+        </div>
+      </div>
+      <div class="sc-badges">
+        ${s.is_limit_up?'<span class="badge b-lmt">漲停</span>':''}
+        <span class="badge b-hi">月線突破 +${(s.breakout_pct||0).toFixed(1)}%</span>
+        <span class="badge b-src">${s.source||'三竹'}</span>
+      </div>
+      <div class="ohlc-row">
+        <div class="ohlc-item"><div class="ohlc-l">開盤</div><div class="ohlc-v">${s.open||"--"}</div></div>
+        <div class="ohlc-item"><div class="ohlc-l">最高</div><div class="ohlc-v up">${s.high||"--"}</div></div>
+        <div class="ohlc-item"><div class="ohlc-l">最低</div><div class="ohlc-v dn">${s.low||"--"}</div></div>
+        <div class="ohlc-item"><div class="ohlc-l">昨收</div><div class="ohlc-v">${s.prev||"--"}</div></div>
+      </div>
+      <div class="tv-row">
+        <span class="tv-lbl">上成值</span>
+        <div class="tv-bar"><div class="tv-fill" style="width:${Math.round(s.turnover_value/maxTV*100)}%"></div></div>
+        <span class="tv-val">${fmtTV(s.turnover_value)}</span>
+      </div>
+    </div>`;
+  }).join("")||'<div class="empty">暫無月線創新高股票</div>';
+
+  document.getElementById("monthly-list").innerHTML=html;
+  document.getElementById("monthly-cnt").textContent=allMonthly.length+" 檔";
+}
+
+// ═══════════════════════════════════════════════════════════
+// 漲停板 + 上成值排行（三竹）
+// ═══════════════════════════════════════════════════════════
+async function loadLimit(manual=false){
+  if(manual) setRefreshSpin("limit",true);
+  document.getElementById("limit-list").innerHTML='<div class="loading"><div class="spin"></div><br>三竹即時掃描漲停中...</div>';
+
+  try{
+    // 查觀察清單即時行情
+    const stocks = await misFetchBatch(WATCH_CODES);
+
+    // 篩選漲停
+    allLimit = stocks.filter(s=>s.is_limit_up);
+    allLimit.sort((a,b)=>b.turnover_value-a.turnover_value);
+
+    document.getElementById("s-limit").textContent=allLimit.length;
+    renderLimit();
+  }catch(e){
+    document.getElementById("limit-list").innerHTML=
+      `<div class="err-box">⚠ 三竹 API 無法連線<br><small>${e.message}</small></div>`;
+    loadLimitDemo();
+  }finally{ if(manual) setRefreshSpin("limit",false); }
+}
+
+function sortLimit(el,key){
+  toggleChipGroup(el,"#limit-chips .c");
+  limitSort=key;
+  renderLimit();
+}
+
+function renderLimit(){
+  let stocks=[...allLimit];
+  if(limitSort==="streak")   stocks.sort((a,b)=>(b.streak||1)-(a.streak||1)||b.turnover_value-a.turnover_value);
+  if(limitSort==="monthly")  stocks.sort((a,b)=>(b.is_monthly_high?1:0)-(a.is_monthly_high?1:0)||b.turnover_value-a.turnover_value);
+  if(limitSort==="tv")       stocks.sort((a,b)=>b.turnover_value-a.turnover_value);
+
+  const maxTV=Math.max(...stocks.map(s=>s.turnover_value),1);
+  const html=stocks.map((s,i)=>{
+    const rank=i+1;
+    const rc=rank<=3?`r${rank}`:"rn";
+    const streak=s.streak||1;
+    return `
+    <div class="sc">
+      <div class="sc-top">
+        <div class="sc-left">
+          <span class="rank ${rc}">${rank}</span>
+          <div><div class="sc-name">${s.name}</div><div class="sc-code">${s.code}</div></div>
+        </div>
+        <div class="sc-price">
+          <div class="sc-p up">${s.price.toLocaleString()}</div>
+          <div class="sc-chg up">+${s.change_pct.toFixed(2)}%</div>
+        </div>
+      </div>
+      <div class="sc-badges">
+        <span class="badge b-lmt">漲停板</span>
+        ${streak>1?`<span class="badge b-streak">${streak}連板</span>`:""}
+        ${s.is_monthly_high?'<span class="badge b-hi">月線新高</span>':""}
+        <span class="badge b-src">三竹即時</span>
+      </div>
+      <div class="ohlc-row">
+        <div class="ohlc-item"><div class="ohlc-l">開盤</div><div class="ohlc-v">${s.open||"--"}</div></div>
+        <div class="ohlc-item"><div class="ohlc-l">最高</div><div class="ohlc-v up">${s.high||"--"}</div></div>
+        <div class="ohlc-item"><div class="ohlc-l">最低</div><div class="ohlc-v dn">${s.low||"--"}</div></div>
+        <div class="ohlc-item"><div class="ohlc-l">昨收</div><div class="ohlc-v">${s.prev||"--"}</div></div>
+      </div>
+      <div class="tv-row">
+        <span class="tv-lbl">上成值</span>
+        <div class="tv-bar"><div class="tv-fill" style="width:${Math.round(s.turnover_value/maxTV*100)}%"></div></div>
+        <span class="tv-val">${fmtTV(s.turnover_value)}</span>
+      </div>
+    </div>`;
+  }).join("")||'<div class="empty">今日觀察清單中暫無漲停</div>';
+
+  document.getElementById("limit-list").innerHTML=html;
+  document.getElementById("limit-cnt").textContent=stocks.length+" 檔";
+}
+
+// ═══════════════════════════════════════════════════════════
+// 財經新聞 RSS（rss2json.com 免費服務）
+// ═══════════════════════════════════════════════════════════
+async function loadNews(){
+  try{
+    const fetches = Object.entries(NEWS_SOURCES).map(async([name,url])=>{
+      try{
+        const r=await fetch(`${RSS2JSON}${encodeURIComponent(url)}&api_key=&count=20`);
+        const data=await r.json();
+        return (data.items||[]).map(item=>{
+          const full=(item.title||"")+" "+(item.description||"");
+          const kws=KEYWORDS.filter(kw=>full.includes(kw));
+          const pub=item.pubDate?new Date(item.pubDate).toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"}):"";
+          return {source:name, title:item.title||"", url:item.link||"#", time:pub, keywords_found:kws, has_keyword:kws.length>0};
+        });
+      }catch{ return []; }
+    });
+    const results=await Promise.allSettled(fetches);
+    allNews=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
+    allNews.sort((a,b)=>(b.has_keyword?1:0)-(a.has_keyword?1:0));
+    allAlerts=allNews.filter(n=>n.has_keyword);
+
+    document.getElementById("s-news").textContent=allAlerts.length;
+    document.getElementById("kw-cnt").textContent=allAlerts.length;
+    if(allAlerts.length>0) document.getElementById("news-banner").style.display="flex";
+
+    renderNews();
+    renderAlerts();
+  }catch(e){
+    document.getElementById("news-list").innerHTML=`<div class="err-box">⚠ 新聞載入失敗<br><small>${e.message}</small></div>`;
+    loadNewsDemo();
+  }
+}
+
+function toggleSrc(el,src){ document.querySelectorAll("#src-filters .fb").forEach(b=>b.classList.remove("on-src")); el.classList.add("on-src"); activeSrc=src; renderNews(); }
+function toggleKw(el,kw){   document.querySelectorAll("#kw-filters .fb").forEach(b=>b.classList.remove("on-kw"));  el.classList.add("on-kw");  activeKw=kw;  renderNews(); }
+
+function renderNews(){
+  let news=[...allNews];
+  if(activeSrc!=="全部") news=news.filter(n=>n.source.includes(activeSrc));
+  if(activeKw !=="全部") news=news.filter(n=>n.keywords_found.includes(activeKw));
+  const html=news.map(n=>`
+    <div class="nc" onclick="window.open('${n.url}','_blank')">
+      <div class="nc-meta">
+        <span class="nc-src">${n.source}</span>
+        <span class="nc-time">${n.time}</span>
+        ${n.has_keyword?'<span class="nc-kw">🔔 關鍵字</span>':""}
+      </div>
+      <div class="nc-title">${n.title}</div>
+      <div class="nc-tags">
+        ${n.keywords_found.map(k=>`<span class="nc-tag" style="background:var(--amber-bg);color:var(--amber-dark)">${k}</span>`).join("")}
+      </div>
+    </div>`).join("")||'<div class="empty">無符合條件的新聞</div>';
+  document.getElementById("news-list").innerHTML=html;
+}
+
+function renderAlerts(){
+  const COL={執行長:"var(--red)",董事長:"var(--red)",總經理:"var(--amber)",副總經理:"var(--amber)",財務長:"var(--blue)",發言人:"var(--blue)",政府:"var(--amber)",創天價:"var(--red)"};
+  const html=allAlerts.map(n=>{
+    const kw=n.keywords_found[0]||"";
+    return `<div class="al" style="border-left-color:${COL[kw]||"var(--red)"}">
+      <div class="al-top">
+        <i class="ti ti-bell al-ic" style="color:${COL[kw]||"var(--red)"}"></i>
+        <span class="al-title">${n.title}</span>
+        <span class="al-time">${n.time}</span>
+      </div>
+      <div class="al-kws">
+        ${n.keywords_found.map(k=>`<span class="badge b-tv">${k}</span>`).join("")}
+        <span class="badge b-src">${n.source}</span>
+      </div>
+    </div>`;
+  }).join("")||'<div class="empty">尚無關鍵字推播通知</div>';
+  document.getElementById("alert-list").innerHTML=html;
+  document.getElementById("alert-cnt").textContent=allAlerts.length+" 則";
+}
+
+// ═══════════════════════════════════════════════════════════
+// Demo 資料（三竹連不到時的備用）
+// ═══════════════════════════════════════════════════════════
+function loadMonthlyDemo(){
+  allMonthly=[
+    {code:"2330",name:"台積電",price:1085,change_pct:3.33,open:1055,high:1090,low:1050,prev:1050,breakout_pct:8.2,turnover_value:456.2,is_limit_up:false,source:"示範資料"},
+    {code:"2317",name:"鴻海",price:238.5,change_pct:6.71,open:225,high:240,low:224,prev:223.5,breakout_pct:5.1,turnover_value:312.8,is_limit_up:true,source:"示範資料"},
+    {code:"2454",name:"聯發科",price:1520,change_pct:3.05,open:1480,high:1525,low:1475,prev:1475,breakout_pct:11.3,turnover_value:287.4,is_limit_up:false,source:"示範資料"},
+    {code:"2382",name:"廣達",price:398,change_pct:4.74,open:382,high:400,low:380,prev:380,breakout_pct:9.5,turnover_value:176.3,is_limit_up:false,source:"示範資料"},
+    {code:"2308",name:"台達電",price:412,change_pct:5.64,open:392,high:415,low:390,prev:390,breakout_pct:6.8,turnover_value:198.6,is_limit_up:false,source:"示範資料"},
+  ];
+  document.getElementById("s-monthly").textContent=allMonthly.length+"*";
+  renderMonthly();
+}
+function loadLimitDemo(){
+  allLimit=[
+    {code:"6531",name:"愛普",price:185,change_pct:10,open:168,high:185,low:167,prev:168,turnover_value:89.3,streak:3,is_monthly_high:true,source:"示範資料"},
+    {code:"3661",name:"世芯-KY",price:4450,change_pct:9.9,open:4050,high:4450,low:4040,prev:4050,turnover_value:76.8,streak:1,is_monthly_high:true,source:"示範資料"},
+    {code:"2330",name:"台積電",price:1085,change_pct:9.8,open:990,high:1085,low:988,prev:988,turnover_value:456.2,streak:1,is_monthly_high:true,source:"示範資料"},
+    {code:"6488",name:"環球晶",price:798,change_pct:9.95,open:726,high:798,low:724,prev:726,turnover_value:62.1,streak:2,is_monthly_high:false,source:"示範資料"},
+    {code:"3714",name:"兆利",price:89.5,change_pct:10,open:81.4,high:89.5,low:81,prev:81.4,turnover_value:45.6,streak:4,is_monthly_high:false,source:"示範資料"},
+  ];
+  document.getElementById("s-limit").textContent=allLimit.length+"*";
+  renderLimit();
+}
+function loadNewsDemo(){
+  allNews=[
+    {source:"經濟日報",time:"10:32",title:"台積電董事長魏哲家：AI晶片需求爆發，今年資本支出上調至400億美元",keywords_found:["董事長"],has_keyword:true,url:"#"},
+    {source:"工商時報",time:"10:15",title:"鴻海執行長劉揚偉宣布AI伺服器出貨量創天價新高",keywords_found:["執行長","創天價"],has_keyword:true,url:"#"},
+    {source:"時報新聞",time:"09:58",title:"政府宣布半導體補貼政策延長三年，台積電受惠",keywords_found:["政府"],has_keyword:true,url:"#"},
+    {source:"自由時報",time:"09:45",title:"聯發科總經理談天璣市占突破40%",keywords_found:["總經理"],has_keyword:true,url:"#"},
+    {source:"非凡新聞",time:"08:22",title:"大盤多頭排列，分析師預估台股上看22,000點",keywords_found:[],has_keyword:false,url:"#"},
+  ];
+  allAlerts=allNews.filter(n=>n.has_keyword);
+  document.getElementById("s-news").textContent=allAlerts.length+"*";
+  document.getElementById("kw-cnt").textContent=allAlerts.length;
+  document.getElementById("news-banner").style.display="flex";
+  renderNews(); renderAlerts();
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI 分析（Claude API）
+// ═══════════════════════════════════════════════════════════
+async function aiAnalyze(type){
+  const tgt={monthly:"ai-monthly",limit:"ai-limit",news:"ai-news"};
+  const el=document.getElementById(tgt[type]);
+  el.innerHTML='<div class="ai-dots"><span></span><span></span><span></span></div> AI 分析中...';
+
+  const prompts={
+    monthly:`你是台灣股市專業分析師。目前月線創新高且上成值最高的股票（三竹即時資料）：${allMonthly.slice(0,5).map(s=>`${s.name}(${s.code})上成值${s.turnover_value}億元、月線突破${s.breakout_pct}%`).join("；")}。請用繁體中文分析：1)這批月線新高股的共同特徵與選股邏輯 2)上成值高代表的市場意涵 3)操作注意事項。150字以內。`,
+    limit:`你是台灣股市專業分析師。今日漲停板上成值排行（三竹即時）：${allLimit.slice(0,5).map((s,i)=>`第${i+1}名${s.name}(${s.code})上成值${s.turnover_value}億元${s.streak>1?"、"+s.streak+"連板":""}`).join("；")}。請用繁體中文分析：1)上成值高的漲停板意義 2)連板股追蹤策略 3)今日市場訊號。150字以內。`,
+    news:`你是台灣財經分析師。今日關鍵字新聞：${allAlerts.slice(0,4).map(n=>n.title).join("；")}。請用繁體中文分析這些新聞對台股的影響及受益類股。150字以內。`
+  };
+
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompts[type]}]})
+    });
+    const data=await res.json();
+    el.textContent=data.content?.map(c=>c.text||"").join("")||"分析失敗，請稍後再試。";
+  }catch(e){
+    el.textContent="AI 連線失敗，請稍後再試。";
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 初始化 & 自動刷新
+// ═══════════════════════════════════════════════════════════
+async function refreshAll(){
+  await Promise.all([loadIndex(), loadLimit(), loadNews()]);
+  await loadMonthly();  // 月線最後跑（需串多次請求）
+}
+
+refreshAll();
+setInterval(refreshAll, 60000);  // 每 60 秒自動刷新
+</script>
+</body>
+</html>
